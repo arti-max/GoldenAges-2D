@@ -29,7 +29,7 @@ class Square:
             center_y=0,
             image_width=width,
             image_height=height,
-            scale=2.5
+            scale=2.0
         )
 
         # Получаем текстуру из атласа

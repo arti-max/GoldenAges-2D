@@ -1,8 +1,10 @@
 import math
 import random
+import pickle
 from typing import Dict, List, Tuple
 
 from src.level.Tile import Tile
+from src.level.tile.Tiles import Tiles
 from src.level.LevelListener import LevelListener
 from src.level.PerlinNoiseFilter import PerlinNoiseFilter
 from src.phys.AABB import AABB
@@ -21,16 +23,30 @@ class Level:
 
         self.levelListeners: List[LevelListener] = []
 
-        self.generateMap()
+        mapLoaded: bool = self.load()
+
+        if (not mapLoaded):
+            self.generateMap()
 
         self.calcLightDepths(0, self.width)
 
     
     def save(self) -> None:
-        pass
+        with open('level.dat', 'wb') as dos:
+            pickle.dump(self.blocks, dos)
 
     def load(self) -> None:
-        pass
+        try:
+            with open('level.dat', 'rb') as dis:
+                self.blocks = pickle.load(dis)
+                self.calcLightDepths(0, self.width)
+
+                for listener in self.levelListeners:
+                    listener.allChanged()
+            
+            return True
+        except Exception as e:
+            return False
 
 
     def generateMap(self) -> None:
@@ -106,7 +122,8 @@ class Level:
         return self.blocks[(x, y)]
     
     def isLightBlocker(self, x: int, y: int) -> bool:
-        return self.isSolidTile(x, y)
+        tile: Tile = Tile(self.getTile(x, y))
+        return tile.id != 0 and tile.blocksLight()
     
     def isTile(self, x: int, y: int) -> bool:
         if (x < 0 or y < 0 or x >= self.width or y >= self.height): return 0
@@ -114,7 +131,8 @@ class Level:
         return self.blocks[(x, y)] != 0
     
     def isSolidTile(self, x: int, y: int) -> bool:
-        return self.isTile(x, y)
+        tile: Tile = Tile(self.getTile(x, y))
+        return tile.id != 0 and tile.isSolid()
     
     def isLit(self, x: int, y: int) -> bool:
         return (x < 0 or y < 0 or x >= self.width or y >= self.height or y >= self.lightDepths[x])
@@ -151,11 +169,11 @@ class Level:
         for x in range(minX, maxX, 1):
             for y in range(minY, maxY, 1):
                 if (self.isSolidTile(x, y)):
-                    block_aabb = AABB(
-                        x, y, 0,
-                        x + 1, y + 1, 1
-                    )
-                    boundingBoxList.append(block_aabb)
+                    tile: Tile = Tile(self.getTile(x, y))
+
+                    block_aabb = tile.getAABB(x, y)
+                    if (block_aabb != None):
+                        boundingBoxList.append(block_aabb)
         
         return boundingBoxList
     

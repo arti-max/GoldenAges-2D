@@ -28,58 +28,54 @@ class Zombie(Entity):
 
         self.setPosition(x, y)
 
-    def onTick(self) -> None:
+    def onTick(self, ai=True) -> None:
         super().onTick()
-
-        # Удаляем зомби, если он упал слишком низко
-        if self.y < -100.0:
-            self.remove()
-            return
-
-        # Получаем текущий угол поворота головы
-        head_rotation = self.model.head.xRotation
         
-        # Определяем, нужно ли зеркалирование (поворот более чем на 40 градусов)
-        self.mirrored = abs(head_rotation) > 90
-        
-        # Корректируем угол движения в зависимости от зеркалирования
-        if self.mirrored:
-            # Если зеркалировано, инвертируем направление движения
-            move_angle = math.radians(180 - head_rotation)
-        else:
-            move_angle = math.radians(head_rotation)
+        if (ai):
+            # Удаляем зомби, если он упал слишком низко
+            if self.y < -100.0:
+                self.remove()
+                return
+            
+            # Получаем текущий угол поворота головы
+            head_rotation = self.model.head.xRotation
+            
+            # Определяем зеркалирование и корректируем угол
+            if head_rotation > 90:
+                self.model.head.xRotation = 180 - head_rotation
+                self.mirrored = True
+            elif head_rotation < -90:
+                self.model.head.xRotation = -180 - head_rotation
+                self.mirrored = False
+            
+            # Корректируем угол движения в зависимости от зеркалирования
+            corrected_angle = self.model.head.xRotation if not self.mirrored else 180 - self.model.head.xRotation
+            move_angle = math.radians(corrected_angle)
+            
+            # Вычисляем движение по x на основе угла головы
+            move_x = math.sin(move_angle)
+            
+            # Случайные прыжки
+            if self.onGround and random.random() < 0.08:
+                self.motionY = 0.5
+            
+            # Движение
+            self.moveRelative(move_x, 0.1 if self.onGround else 0.02)
+            
+            # Гравитация
+            self.motionY -= 0.06
+            
+            # Обновление позиции
+            self.move(self.motionX, self.motionY)
+            
+            # Замедление
+            self.motionX *= 0.91
+            self.motionY *= 0.98
+            
+            # Дополнительное замедление на земле
+            if self.onGround:
+                self.motionX *= 0.7
 
-        # Вычисляем движение по x и y на основе угла головы
-        move_x = math.sin(move_angle)
-        #move_y = math.cos(move_angle)
-
-        # Нормализуем вектор движения (чтобы скорость была постоянной)
-        # length = math.sqrt(move_x**2 + move_y**2)
-        # if length > 0:
-        #     move_x /= length
-        #     move_y /= length
-
-        # Случайные прыжки
-        if self.onGround and random.random() < 0.08:
-            self.motionY = 0.5
-
-        # Движение - используем только горизонтальную компоненту (move_x)
-        # Вертикальная компонента (move_y) не используется для движения вперед/назад
-        self.moveRelative(move_x, 0.1 if self.onGround else 0.02)
-
-        # Гравитация
-        self.motionY -= 0.06
-
-        # Обновление позиции
-        self.move(self.motionX, self.motionY)
-
-        # Замедление
-        self.motionX *= 0.91
-        self.motionY *= 0.98
-
-        # Дополнительное замедление на земле
-        if self.onGround:
-            self.motionX *= 0.7
 
     def render(self, partialTicks: float) -> None:
         t: float = time.time_ns() / 1000000000 * 150.0 * self.speed + self.timeOffset
@@ -101,8 +97,8 @@ class Zombie(Entity):
             y = sprite.center_y + 20
             angle = part.xRotation
 
-            width = texture.width * 2.5
-            height = texture.height * 2.5
+            width = texture.width * 2.0
+            height = texture.height * 2.0
 
             # Pivot в относительных единицах (например, 0.5, 0.5)
             pivot_x_rel = part.pivot_x

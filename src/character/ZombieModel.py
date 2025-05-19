@@ -24,13 +24,13 @@ class ZombieModel:
 
     def setup_positions(self):
         # Позиционируем части тела относительно центра
-        self.head.setPosition(0, 1.5)  # Голова сверху
+        self.head.setPosition(0, 1.2)  # Голова сверху
         self.head.type = 'head'
-        self.body.setPosition(0, 0.6)  # Тело по центру
+        self.body.setPosition(0, 0.5)  # Тело по центру
         
         # Руки по бокам
-        self.rightArm.setPosition(0, 0.3)
-        self.leftArm.setPosition(0, 0.3)
+        self.rightArm.setPosition(0, 0.2)
+        self.leftArm.setPosition(0, 0.2)
         
         # Ноги снизу
         self.rightLeg.setPosition(0, -0.5)

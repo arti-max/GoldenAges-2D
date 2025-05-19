@@ -83,31 +83,36 @@ class Chunk:
                         
                         # Слой 0 - только светлые блоки
                         if layer == 0 and is_lit:
-                            shadow = arcade.SpriteSolidColor(
-                                width=32,
-                                height=32,
-                                color=(0, 0, 0, 65)
-                            )
 
-                            shadow.center_x = tile.sprite.center_x
-                            shadow.center_y = tile.sprite.center_y
+                            if (tile.blocksLight()):
+                                shadow = arcade.SpriteSolidColor(
+                                    width=32,
+                                    height=32,
+                                    color=(0, 0, 0, 65)
+                                )
+
+                                shadow.center_x = tile.sprite.center_x
+                                shadow.center_y = tile.sprite.center_y
                             
                             self.tile_sprites_0.append(tile.sprite)
-                            self.tile_sprites_0.append(shadow)
+                            if (tile.blocksLight()):
+                                self.tile_sprites_0.append(shadow)
                             tiles += 1
                         # Слой 1 - только темные блоки с наложением черного
                         elif layer == 1 and not is_lit:
                             # Создаем черный прямоугольник для затемнения
-                            shadow = arcade.SpriteSolidColor(
-                                width=32,
-                                height=32,
-                                color=(0, 0, 0, 140)
-                            )
-                            shadow.center_x = tile.sprite.center_x
-                            shadow.center_y = tile.sprite.center_y
+                            if (tile.blocksLight()):
+                                shadow = arcade.SpriteSolidColor(
+                                    width=32,
+                                    height=32,
+                                    color=(0, 0, 0, 140)
+                                )
+                                shadow.center_x = tile.sprite.center_x
+                                shadow.center_y = tile.sprite.center_y
                             
                             self.tile_sprites_1.append(tile.sprite)
-                            self.tile_sprites_1.append(shadow)
+                            if (tile.blocksLight()):
+                                self.tile_sprites_1.append(shadow)
                             tiles += 1
 
         if (tiles > 0):

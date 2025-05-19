@@ -6,10 +6,12 @@ from src.level.LevelRenderer import LevelRenderer
 from src.level.Level import Level
 from src.level.Chunk import Chunk
 from src.Textures import Textures
-from src.level.Tile import Tile, Tiles
+from src.level.Tile import Tile
+from src.level.tile.Tiles import Tiles
 from src.Player import Player
 from src.Timer import Timer
 from src.character.Zombie import Zombie
+from src.character.PlayerZombie import PlayerZombie
 
 class Main(arcade.Window):
     MAX_PLACE_DISTANCE = 6
@@ -23,6 +25,7 @@ class Main(arcade.Window):
         self.level = Level(256, 64)
         self.levelRenderer = LevelRenderer(self.level)
         self.player = Player(self.level)
+        self.player_zombie = PlayerZombie(self.level, self.player.x, self.player.y)
 
         self.zombies: List[Zombie] = []
         
@@ -82,7 +85,7 @@ class Main(arcade.Window):
 
     def _limit_to_reachable_block(self, block_x: int, block_y: int) -> tuple:
         """Находит ближайший доступный блок по линии к курсору"""
-        player_x, player_y = self.player.x, self.player.y
+        player_x, player_y = self.player.x, self.player.y+1
         
         # Вектор направления
         dx = block_x - player_x
@@ -132,8 +135,8 @@ class Main(arcade.Window):
         zoom = self.camera.zoom
         
         # Преобразуем координаты мыши с учетом зума
-        world_x = (self._mouse_mot_x / zoom + self.camera.position[0] - self.camera.viewport.width / (2 * zoom)) / 32
-        world_y = (self._mouse_mot_y / zoom + self.camera.position[1] - self.camera.viewport.height / (2 * zoom)) / 32
+        world_x = (self._mouse_mot_x / zoom + self.camera.position[0] - self.camera.viewport.width // (2 * zoom)) / 32
+        world_y = (self._mouse_mot_y / zoom + self.camera.position[1] - self.camera.viewport.height // (2 * zoom)) / 32
         
         block_x = int(world_x)
         block_y = int(world_y)
@@ -158,7 +161,7 @@ class Main(arcade.Window):
         y: int = self.player.prevY + (self.player.y - self.player.prevY) * partialTicks
 
         screen_center_x = (x * 32)
-        screen_center_y = (y * 32) - (self.camera.viewport.height / 2) + (32 * 10)
+        screen_center_y = (y * 32) - (self.camera.viewport.height // 2) + (32 * 10)
         
         # Плавное перемещение камеры
         self.camera.position = (screen_center_x, screen_center_y)
@@ -172,12 +175,30 @@ class Main(arcade.Window):
                 self.zombies.pop(self.zombies.index(zombie))
 
         self.player.onTick()
+        self.player_zombie.onTick()
             
         # Обработка управления
         if self.left_pressed:
             self.player.move_left()
+            self.player_zombie.move_left()
         if self.right_pressed:
             self.player.move_right()
+            self.player_zombie.move_right()
+
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+        viewport = arcade.Rect(
+            left=0,
+            right=width,
+            bottom=0,
+            top=height,
+            width=width,
+            height=height,
+            x=0,
+            y=0
+        )
+        self.camera.viewport = viewport
+        self.camera.position = (0, 0)
 
     def on_update(self, delta_time: float):
         self.timer.advance_time()
@@ -231,30 +252,40 @@ class Main(arcade.Window):
 
         self.update_block_highlight()
         
-        px: int = self.player.prevX + (self.player.x - self.player.prevX) * partialTicks
-        py: int = self.player.prevY + (self.player.y - self.player.prevY) * partialTicks
+        # px: int = self.player.prevX + (self.player.x - self.player.prevX) * partialTicks
+        # py: int = self.player.prevY + (self.player.y - self.player.prevY) * partialTicks
 
         # Отрисовка игрока
-        player_x = px * 32
-        player_y = py * 32 + 26
-        player_width = self.player.boundingBoxWidth * 32
-        player_height = self.player.boundingBoxHeight * 30
+        # player_x = px * 32
+        # player_y = py * 32 + 26
+        # player_width = self.player.boundingBoxWidth * 32
+        # player_height = self.player.boundingBoxHeight * 30
+
+        self.player_zombie.x = self.player.x
+        self.player_zombie.y = self.player.y
+
+        # print(f"PLX: {self.player.x} : {self.player_zombie.x}")
+        # print(f"PLY: {self.player.y} : {self.player_zombie.y}")
         
-        pl = arcade.Rect(
-            left=player_x - player_width/2,
-            right=player_x + player_width/2,
-            bottom=player_y - player_height/2,
-            top=player_y + player_height/2,
-            width=player_width,
-            height=player_height,
-            x=player_x,
-            y=player_y
-        )
+        # pl = arcade.Rect(
+        #     left=player_x - player_width/2,
+        #     right=player_x + player_width/2,
+        #     bottom=player_y - player_height/2,
+        #     top=player_y + player_height/2,
+        #     width=player_width,
+        #     height=player_height,
+        #     x=player_x,
+        #     y=player_y
+        # )
         
-        arcade.draw_rect_filled(
-            rect=pl,
-            color=arcade.color.BLUE
-        )
+        # arcade.draw_rect_filled(
+        #     rect=pl,
+        #     color=arcade.color.BLUE
+        # )
+
+        self.player_zombie.render(self.timer.partial_ticks)
+        # self.player_zombie.x = self.player.x
+        # self.player_zombie.y = self.player.y
         
         # Отрисовка подсветки блоков
         if self.hover_block:
@@ -293,10 +324,15 @@ class Main(arcade.Window):
             self.right_pressed = True
         elif key == arcade.key.SPACE:
             self.player.jump()
+            self.player_zombie.jump()
         elif key == arcade.key.R:
             self.player.resetPosition()
+            self.player_zombie.x = self.player.x
+            self.player_zombie.y = self.player.y
         elif key == arcade.key.G:
             self.zombies.append(Zombie(self.level, self.player.x, self.player.y))
+        elif key == arcade.key.ENTER:
+            self.level.save()
         # Выбор блоков
         elif key == arcade.key.KEY_1:
             self.selected_block = Tiles.DIRT  # Dirt
@@ -310,12 +346,19 @@ class Main(arcade.Window):
         elif key == arcade.key.KEY_4:
             self.selected_block = Tiles.PLANKS  # Planks
             self.update_place_highlight_texture()
+        elif key == arcade.key.KEY_6:
+            self.selected_block = Tiles.BUSH    # Bush
+            self.update_place_highlight_texture()
             
     def on_key_release(self, key, modifiers):
         if key == arcade.key.A:
             self.left_pressed = False
+            if not self.right_pressed:
+                self.player_zombie.stop()
         elif key == arcade.key.D:
             self.right_pressed = False
+            if not self.left_pressed:
+                self.player_zombie.stop()
             
     def on_mouse_motion(self, x: float, y: float, dx: float, dy: float):
         # Сохраняем текущие координаты мыши
